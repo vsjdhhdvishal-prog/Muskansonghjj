@@ -7,7 +7,7 @@ import sys
 import logging
 from typing import Final, Dict, List
 
-BOT_VERSION: Final[str] = "30.0.0-CleanEnterprise"
+BOT_VERSION: Final[str] = "35.0.0-Enterprise"
 DEFAULT_PORT: Final[int] = 10000
 DATABASE_FILENAME: Final[str] = "enterprise_bot_database.sqlite"
 
@@ -22,10 +22,10 @@ logging.basicConfig(
     format="%(asctime)s | LEVEL: %(levelname)-8s | MODULE: %(name)s | LINE: %(lineno)d - %(message)s",
     level=logging.INFO
 )
-LOGGER = logging.getLogger("CleanEnterpriseBot")
+LOGGER = logging.getLogger("EnterpriseBot")
 
-# Group tag/mention replies ke liye knowledge base
-GROUP_KNOWLEDGE_BASE: Final[Dict[str, List[str]]] = {
+# Knowledge Base for Private Auto-Replies & Group Tag Mentions
+KNOWLEDGE_BASE: Final[Dict[str, List[str]]] = {
     "interview_location": [
         "Main Indore se hoon! Madhya Pradesh ka sabse pyaara aur cleanest shehar. ✨",
         "Home town Indore hai mera, wahin rehti hoon."
