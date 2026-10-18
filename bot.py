@@ -32,6 +32,6 @@ async def promotion_cmd(client, message: Message):
     await m.edit_text(f"✅ **Promotion Success:**\n\n{query}")
 
 if __name__ == "__main__":
-    print("Bot is starting...")
+    print("Bot is starting polling...")
     app.run()
     
