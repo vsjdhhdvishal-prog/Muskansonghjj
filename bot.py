@@ -47,7 +47,6 @@ def get_all_groups():
     conn.close()
     return [row[0] for row in rows]
 
-# Initialize database on start
 init_db()
 
 # --- FLASK SERVER FOR RENDER ---
@@ -55,7 +54,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "Bot is running 24/7 with Database!"
+    return "Bot is running 24/7!"
 
 def run_web():
     port = int(os.environ.get("PORT", 10000))
@@ -63,7 +62,7 @@ def run_web():
 
 # --- TELEGRAM BOT HANDLERS ---
 
-# 1. Track Groups & Save to DB
+# 1. Track when bot is added/removed
 async def track_chats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     result = update.my_chat_member
     if result:
@@ -71,40 +70,57 @@ async def track_chats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if chat.type in ["group", "supergroup"]:
             if result.new_chat_member.status in ["member", "administrator"]:
                 add_group(chat.id, chat.title)
-                print(f"Group saved to DB: {chat.title} (ID: {chat.id})")
+                print(f"Group added: {chat.title}")
             elif result.new_chat_member.status in ["left", "kicked"]:
                 remove_group(chat.id)
-                print(f"Group removed from DB: {chat.title}")
+                print(f"Group removed: {chat.title}")
 
-# 2. Auto-reply for private chats
+# 2. Smart Auto-Save: Agar group me koi bhi message karega, bot use database me save kar lega
+async def auto_save_group_on_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat = update.effective_chat
+    if chat and chat.type in ["group", "supergroup"]:
+        add_group(chat.id, chat.title)
+
+# 3. Auto-reply for private chats
 async def auto_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.chat.type == "private":
-        await update.message.reply_text("Hello! Main ek auto-reply bot hoon. Aapke message ke liye shukriya.")
+        await update.message.reply_text("Hello! Main ek auto-reply bot hoon.")
 
-# 3. Promote Command (Sends link to all saved groups)
-async def promote_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.args:
-        await update.message.reply_text("Kripya link ke sath command dein. Jaise:\n/promote https://yourlink.com")
+# 4. Broadcast Command (Sends replied post to ALL saved groups)
+async def broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message.reply_to_message:
+        await update.message.reply_text("⚠️ Kripya apni post ya link ko **Reply** karke `/broadcast` command bhejein!")
         return
 
-    promo_message = "📢 **Special Promotion:**\n\n" + " ".join(context.args)
-    
     group_ids = get_all_groups()
+    
+    if not group_ids:
+        await update.message.reply_text("⚠️ Abhi tak koi group saved nahi hai!")
+        return
+
     success_count = 0
     fail_count = 0
 
+    target_message_id = update.message.reply_to_message.message_id
+    from_chat_id = update.effective_chat.id
+
     for chat_id in group_ids:
         try:
-            await context.bot.send_message(chat_id=chat_id, text=promo_message, parse_mode="Markdown")
+            await context.bot.copy_message(
+                chat_id=chat_id,
+                from_chat_id=from_chat_id,
+                message_id=target_message_id
+            )
             success_count += 1
         except Exception as e:
             print(f"Error sending to {chat_id}: {e}")
             fail_count += 1
 
-    await update.message.reply_text(f"Promotion Sent!\n✅ Success: {success_count}\n❌ Failed: {fail_count}")
+    await update.message.reply_text(
+        f"📢 **Broadcast Finished!**\n\n✅ Sent to: {success_count} groups\n❌ Failed: {fail_count}"
+    )
 
 if __name__ == '__main__':
-    # Start Flask server in a separate thread
     t = threading.Thread(target=run_web)
     t.start()
 
@@ -113,9 +129,14 @@ if __name__ == '__main__':
     application = ApplicationBuilder().token(TOKEN).build()
 
     application.add_handler(ChatMemberHandler(track_chats, ChatMemberHandler.MY_CHAT_MEMBER))
-    application.add_handler(CommandHandler("promote", promote_link))
-    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), auto_reply))
+    application.add_handler(CommandHandler("broadcast", broadcast_message))
+    
+    # Group messages ko sunkar auto-save karne ke liye handler
+    application.add_handler(MessageHandler(filters.ChatType.GROUPS & (~filters.COMMAND), auto_save_group_on_message))
+    
+    # Private chat auto-reply handler
+    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND) & filters.ChatType.PRIVATE, auto_reply))
 
-    print("Telegram Bot start ho chuka hai with SQLite Database...")
+    print("Bot fully active with Auto-Save Broadcast...")
     application.run_polling()
     
