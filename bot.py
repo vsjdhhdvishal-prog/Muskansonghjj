@@ -1,7 +1,5 @@
 import os
 import time
-import asyncio
-from aiohttp import web
 from pyrogram import Client, filters
 from pyrogram.types import Message
 
@@ -27,45 +25,24 @@ async def ping_cmd(client, message: Message):
 @app.on_message(filters.command(["broadcast", "promotion"]) & filters.user(OWNER_ID))
 async def promotion_cmd(client, message: Message):
     if len(message.command) < 2:
-        return await message.reply_text("Kripya promotion message dein! Jaise:\n`/promotion Hello everyone`")
+        return await message.reply_text("Kripya promotion message dein!")
     
     query = message.text.split(None, 1)[1]
-    status_msg = await message.reply_text("⏳ Promotion shuru ho raha hai...")
+    m = await message.reply_text("⏳ Promotion shuru ho raha isme...")
     
     sent = 0
     failed = 0
-    
     async for dialog in client.get_dialogs():
-        chat_id = dialog.chat.id
-        if chat_id != message.chat.id:
+        if dialog.chat.id != message.chat.id:
             try:
-                await client.send_message(chat_id, query)
+                await client.send_message(dialog.chat.id, query)
                 sent += 1
-                await asyncio.sleep(0.4)
             except Exception:
                 failed += 1
 
-    await status_msg.edit_text(f"✅ **Promotion Complete!**\n\n- Successful: `{sent}` chats\n- Failed: `{failed}` chats")
-
-# Render ke port error ko khatam karne ke liye dummy web server
-async def handle(request):
-    return web.Response(text="Bot is running smoothly!")
-
-async def web_server():
-    web_app = web.Application()
-    web_app.add_routes([web.get("/", handle)])
-    runner = web.AppRunner(web_app)
-    await runner.setup()
-    port = int(os.getenv("PORT", "8080"))
-    site = web.TCPSite(runner, "0.0.0.0", port)
-    await site.start()
-
-async def main():
-    await web_server()
-    await app.start()
-    print("Bot & Web Server Successfully Started!")
-    await asyncio.Event().wait()
+    await m.edit_text(f"✅ **Promotion Complete!**\n- Sent: `{sent}`\n- Failed: `{failed}`")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    print("Bot is starting polling...")
+    app.run()
     
