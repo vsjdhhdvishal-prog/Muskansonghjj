@@ -13,7 +13,7 @@ from telegram.ext import (
     filters,
     ContextTypes
 )
-from config import BOT_TOKEN, OWNER_ID, GROUP_KNOWLEDGE_BASE, LOGGER, validate_system_config, BOT_VERSION
+from config import BOT_TOKEN, OWNER_ID, KNOWLEDGE_BASE, LOGGER, validate_system_config, BOT_VERSION
 from database_server import DB_INSTANCE, WEB_SERVER_INSTANCE
 
 class EnterpriseBotEngine:
@@ -52,22 +52,46 @@ class EnterpriseBotEngine:
 
         if is_tagged or is_reply_to_bot:
             txt_lower = msg_text.lower()
-            
             if any(k in txt_lower for k in ["kahan", "rehte", "shehar", "city", "address"]):
-                reply_out = random.choice(GROUP_KNOWLEDGE_BASE["interview_location"])
+                reply_out = random.choice(KNOWLEDGE_BASE["interview_location"])
             elif any(k in txt_lower for k in ["kya karte", "study", "padhai", "school", "12th", "student"]):
-                reply_out = random.choice(GROUP_KNOWLEDGE_BASE["interview_study"])
+                reply_out = random.choice(KNOWLEDGE_BASE["interview_study"])
             elif any(k in txt_lower for k in ["attitude", "aukat", "bhav", "ghamand"]):
-                reply_out = random.choice(GROUP_KNOWLEDGE_BASE["attitude"])
+                reply_out = random.choice(KNOWLEDGE_BASE["attitude"])
             elif any(k in txt_lower for k in ["pyaar", "flirt", "cute", "love"]):
-                reply_out = random.choice(GROUP_KNOWLEDGE_BASE["flirt"])
+                reply_out = random.choice(KNOWLEDGE_BASE["flirt"])
             else:
-                reply_out = random.choice(GROUP_KNOWLEDGE_BASE["default_pool"])
+                reply_out = random.choice(KNOWLEDGE_BASE["default_pool"])
 
             try:
                 await update.message.reply_text(reply_out)
             except Exception as exc:
                 LOGGER.error(f"Error replying to group tag: {exc}")
+
+    @staticmethod
+    async def process_private_auto_replies(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        if not update.message or not update.message.text:
+            return
+        if update.message.chat.type != "private":
+            return
+
+        incoming_text = update.message.text.lower()
+
+        if any(w in incoming_text for w in ["kahan", "city", "where", "rehte", "shehar", "address"]):
+            response_text = random.choice(KNOWLEDGE_BASE["interview_location"])
+        elif any(w in incoming_text for w in ["kya karte", "study", "padhai", "school", "12th", "student"]):
+            response_text = random.choice(KNOWLEDGE_BASE["interview_study"])
+        elif any(w in incoming_text for w in ["attitude", "bhav", "ghamand", "aukat"]):
+            response_text = random.choice(KNOWLEDGE_BASE["attitude"])
+        elif any(w in incoming_text for w in ["flirt", "pyaar", "love", "cute", "hot"]):
+            response_text = random.choice(KNOWLEDGE_BASE["flirt"])
+        else:
+            response_text = random.choice(KNOWLEDGE_BASE["default_pool"])
+
+        try:
+            await update.message.reply_text(response_text)
+        except Exception as exc:
+            LOGGER.error(f"Error sending private reply: {exc}")
 
     @staticmethod
     async def execute_secure_promotion_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -121,8 +145,9 @@ class MassiveBotLauncher:
             app.add_handler(CommandHandler("promotion", EnterpriseBotEngine.execute_secure_promotion_command))
             app.add_handler(MessageHandler(filters.ChatType.GROUPS & (~filters.COMMAND), EnterpriseBotEngine.auto_save_active_groups))
             app.add_handler(MessageHandler(filters.ChatType.GROUPS & (filters.TEXT | filters.COMMAND), EnterpriseBotEngine.handle_group_tag_mentions))
+            app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND) & filters.ChatType.PRIVATE, EnterpriseBotEngine.process_private_auto_replies))
 
-            LOGGER.info("Bot is live with Group Tag Mentions & Secure Promotion...")
+            LOGGER.info("Enterprise Bot is fully live with Private Auto-Replies & Promotion...")
             app.run_polling(allowed_updates=Update.ALL_TYPES)
         except Exception as exc:
             LOGGER.critical(f"Critical error: {exc}")
