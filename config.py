@@ -1,5 +1,5 @@
 # =====================================================================
-# FILE: config.py (Fixed Variable Name)
+# FILE: config.py
 # =====================================================================
 
 import os
@@ -7,7 +7,7 @@ import sys
 import logging
 from typing import Final, Dict, List
 
-BOT_VERSION: Final[str] = "35.0.0-Enterprise"
+BOT_VERSION: Final[str] = "40.0.0-Enterprise"
 DEFAULT_PORT: Final[int] = 10000
 DATABASE_FILENAME: Final[str] = "enterprise_bot_database.sqlite"
 
@@ -24,8 +24,8 @@ logging.basicConfig(
 )
 LOGGER = logging.getLogger("EnterpriseBot")
 
-# Variable name matched with bot.py
-GROUP_KNOWLEDGE_BASE: Final[Dict[str, List[str]]] = {
+# Exact matching variable name for both private chat & group tag replies
+KNOWLEDGE_BASE: Final[Dict[str, List[str]]] = {
     "interview_location": [
         "Main Indore se hoon! Madhya Pradesh ka sabse pyaara aur cleanest shehar. ✨",
         "Home town Indore hai mera, wahin rehti hoon."
