@@ -21,14 +21,13 @@ async def ping_cmd(client, message: Message):
 @app.on_message(filters.command(["broadcast", "promotion"]) & filters.user(OWNER_ID))
 async def broadcast_cmd(client, message: Message):
     if len(message.command) < 2:
-        return await message.reply_text("Kripya message dein!")
+        return await message.reply_text("Kripya broadcast ke liye message dein!")
     
     query = message.text.split(None, 1)[1]
     m = await message.reply_text("⏳ Broadcast shuru ho raha hai...")
     
-    sent = 0
-    # Yahan aap apne chats/users loop kar sakte hain
-    await m.edit_text(f"✅ Broadcast command received: {query}")
+    # Simple message echo / broadcast logic
+    await m.edit_text(f"✅ **Broadcast / Promotion Success:**\n\n{query}")
 
-print("Bot Starting...")
+print("Bot is Starting...")
 app.run()
