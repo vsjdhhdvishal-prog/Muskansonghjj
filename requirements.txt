@@ -1,4 +1,0 @@
-pyrogram
-tgcrypto
-python-telegram-bot==21.1
-flask==3.0.2
