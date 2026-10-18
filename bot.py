@@ -1,10 +1,10 @@
 # =====================================================================
-# FILE 5 OF 5: bot.py
+# FILE 5 OF 5: bot.py (Updated)
 # Purpose: Main Enterprise Bot Orchestrator and Polling Runner
-# Lines: ~300
 # =====================================================================
 
 import sys
+from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
     ChatMemberHandler,
@@ -31,7 +31,6 @@ class EnterpriseTelegramBotLauncher:
             sys.exit(1)
 
         try:
-            # Build application with token
             self.application = ApplicationBuilder().token(BOT_TOKEN).build()
             self._register_handlers()
             LOGGER.info("Telegram application built and configured successfully.")
@@ -43,7 +42,6 @@ class EnterpriseTelegramBotLauncher:
         """Registers all event handlers and command routers into the application."""
         LOGGER.info("Registering enterprise event handlers...")
 
-        # 1. Chat Member Handler (Tracking group additions/removals)
         self.application.add_handler(
             ChatMemberHandler(
                 EnterpriseBotHandlers.track_chats_handler,
@@ -51,12 +49,10 @@ class EnterpriseTelegramBotLauncher:
             )
         )
 
-        # 2. Secure Owner Command Handler (/promotion)
         self.application.add_handler(
             CommandHandler("promotion", EnterpriseBotHandlers.promotion_command_handler)
         )
 
-        # 3. Group Message Smart Auto-Save Handler
         self.application.add_handler(
             MessageHandler(
                 filters.ChatType.GROUPS & (~filters.COMMAND),
@@ -64,7 +60,6 @@ class EnterpriseTelegramBotLauncher:
             )
         )
 
-        # 4. Private Chat Interview & Auto-Reply Handler
         self.application.add_handler(
             MessageHandler(
                 filters.TEXT & (~filters.COMMAND) & filters.ChatType.PRIVATE,
@@ -78,13 +73,9 @@ class EnterpriseTelegramBotLauncher:
         """Starts the uptime web server and runs the Telegram bot polling engine."""
         LOGGER.info("Initializing enterprise bot startup sequence...")
 
-        # Step 1: Start 24/7 Uptime Flask Web Server in Background Thread
         WEB_SERVER.start_background_thread()
-
-        # Step 2: Build Bot Application
         self.build_application()
 
-        # Step 3: Start Long Polling for Telegram Updates
         LOGGER.info("Starting Telegram bot long-polling engine... Bot is now live!")
         try:
             self.application.run_polling(allowed_updates=Update.ALL_TYPES)
@@ -92,9 +83,6 @@ class EnterpriseTelegramBotLauncher:
             LOGGER.critical(f"Polling crashed due to unexpected error: {exc}")
             sys.exit(1)
 
-# ---------------------------------------------------------------------
-# Application Entry Point
-# ---------------------------------------------------------------------
 if __name__ == "__main__":
     print(f"""
     ========================================================
