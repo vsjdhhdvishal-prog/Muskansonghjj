@@ -1,7 +1,6 @@
 # =====================================================================
-# FILE 3 OF 5: server.py
+# FILE 3 OF 5: server.py (Updated)
 # Purpose: Flask Health Check and 24/7 Uptime Web Server
-# Lines: ~300
 # =====================================================================
 
 import os
@@ -60,10 +59,6 @@ class EnterpriseWebServer:
         """Starts the Flask server bound to all network interfaces."""
         try:
             LOGGER.info(f"Starting uptime web server on port {self.port}...")
-            # Disable noisy Flask development server warning logs in production
-            import cli
-            cli.show_server_banner = lambda *args: None
-            
             self.app.run(host='0.0.0.0', port=self.port, debug=False, use_reloader=False)
         except Exception as exc:
             LOGGER.critical(f"Failed to start web server: {exc}")
@@ -75,9 +70,4 @@ class EnterpriseWebServer:
         LOGGER.info("Uptime web server successfully spawned in background thread.")
         return server_thread
 
-# Global Web Server Instance
 WEB_SERVER = EnterpriseWebServer()
-
-if __name__ == "__main__":
-    LOGGER.info("Running standalone web server test...")
-    WEB_SERVER.run_server()
