@@ -1,5 +1,5 @@
 # =====================================================================
-# FILE 2 OF 3: database_server.py (Heavy Storage & Uptime Engine)
+# FILE: database_server.py
 # Purpose: SQLite Connection Pooling, Persistence & Flask 24/7 Server
 # =====================================================================
 
@@ -30,7 +30,6 @@ class MassiveDatabaseManager:
             try:
                 with self._get_connection() as conn:
                     cursor = conn.cursor()
-                    # Groups Table
                     cursor.execute('''
                         CREATE TABLE IF NOT EXISTS enterprise_groups (
                             chat_id INTEGER PRIMARY KEY,
@@ -38,7 +37,6 @@ class MassiveDatabaseManager:
                             registered_at DATETIME DEFAULT CURRENT_TIMESTAMP
                         )
                     ''')
-                    # Analytics & Message Count Table for 10M Scale
                     cursor.execute('''
                         CREATE TABLE IF NOT EXISTS message_logs (
                             log_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -93,7 +91,7 @@ class MassiveDatabaseManager:
                     cursor = conn.cursor()
                     cursor.execute(
                         'INSERT INTO message_logs (user_id, message_text) VALUES (?, ?)',
-                        (user_id, text[:255]) # Truncate long texts for log safety
+                        (user_id, text[:255])
                     )
                     conn.commit()
             except Exception as exc:
@@ -103,7 +101,6 @@ DB_INSTANCE = MassiveDatabaseManager()
 
 # --- 24/7 FLASK UPTIME WEB SERVER ---
 class MassiveUptimeServer:
-    """Runs a high-performance web server to keep the cloud worker alive 24/7."""
     
     def __init__(self, port: int = DEFAULT_PORT) -> None:
         self.port = port
@@ -120,7 +117,6 @@ class MassiveUptimeServer:
                         <h1 style="color:#38bdf8;">Massive Enterprise Bot 10M+ 🚀</h1>
                         <p>Status: <span style="background:#22c55e; padding:5px 12px; border-radius:20px; font-weight:bold;">ONLINE 24/7</span></p>
                         <p>Version: {{ version }}</p>
-                        <p>Handling massive text replies, interview, attitude, and flirt algorithms seamlessly.</p>
                     </div>
                 </body>
                 </html>
@@ -128,7 +124,7 @@ class MassiveUptimeServer:
 
         @self.server_app.route('/health')
         def health_check():
-            return jsonify({"status": "healthy", "engine": "heavy-load-active", "version": BOT_VERSION}), 200
+            return jsonify({"status": "healthy", "version": BOT_VERSION}), 200
 
     def start_server_process(self) -> None:
         try:
@@ -142,3 +138,4 @@ class MassiveUptimeServer:
         LOGGER.info("Massive uptime web server successfully spawned in background thread.")
 
 WEB_SERVER_INSTANCE = MassiveUptimeServer()
+        
