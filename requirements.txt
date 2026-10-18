@@ -1,0 +1,7 @@
+pyrogram
+tgcrypto
+asyncio
+aiofiles
+motor
+yt-dlp
+requests
