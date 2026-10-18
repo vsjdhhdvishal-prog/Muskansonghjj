@@ -1,5 +1,5 @@
 # =====================================================================
-# FILE: config.py
+# FILE: config.py (Fixed Variable Name)
 # =====================================================================
 
 import os
@@ -24,8 +24,8 @@ logging.basicConfig(
 )
 LOGGER = logging.getLogger("EnterpriseBot")
 
-# Knowledge Base for Private Auto-Replies & Group Tag Mentions
-KNOWLEDGE_BASE: Final[Dict[str, List[str]]] = {
+# Variable name matched with bot.py
+GROUP_KNOWLEDGE_BASE: Final[Dict[str, List[str]]] = {
     "interview_location": [
         "Main Indore se hoon! Madhya Pradesh ka sabse pyaara aur cleanest shehar. ✨",
         "Home town Indore hai mera, wahin rehti hoon."
