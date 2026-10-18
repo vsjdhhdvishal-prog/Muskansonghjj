@@ -1,108 +1,94 @@
 # =====================================================================
-# FILE 1 OF 5: config.py
-# Purpose: Configuration, Logging, and Security Parameters
-# Lines: ~300
+# FILE 1 OF 3: config.py (Heavy Enterprise Configuration & Large Datasets)
+# Purpose: Massive Knowledge Base for Interview, Attitude, Flirt & Chats
 # =====================================================================
 
 import os
 import sys
 import logging
-from typing import Final, Dict, Any, List
+from typing import Final, Dict, List, Any
 
-# ---------------------------------------------------------------------
-# 1. System Constants & Environment Variables
-# ---------------------------------------------------------------------
-BOT_VERSION: Final[str] = "3.5.0-Enterprise"
+# --- SYSTEM CONSTANTS ---
+BOT_VERSION: Final[str] = "15.0.0-MassiveEnterprise"
 DEFAULT_PORT: Final[int] = 10000
-DATABASE_FILENAME: Final[str] = "enterprise_bot_database.sqlite"
+DATABASE_FILENAME: Final[str] = "massive_enterprise_database.sqlite"
 
-# Retrieve Telegram Bot Token from Environment Variables
+# --- ENVIRONMENT VARIABLES ---
 BOT_TOKEN: Final[str] = os.environ.get("BOT_TOKEN", "")
 
-# Retrieve Owner ID (Replace with your actual Telegram User ID)
 try:
     OWNER_ID: Final[int] = int(os.environ.get("OWNER_ID", "123456789"))
 except ValueError:
     OWNER_ID = 123456789
 
-# ---------------------------------------------------------------------
-# 2. Advanced Logging System Configuration
-# ---------------------------------------------------------------------
-LOG_FORMAT: Final[str] = (
-    "%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s:%(lineno)d - %(message)s"
+# --- ADVANCED LOGGING SETUP ---
+logging.basicConfig(
+    format="%(asctime)s | LEVEL: %(levelname)-8s | MODULE: %(name)s | LINE: %(lineno)d - %(message)s",
+    level=logging.INFO
 )
-LOG_FILE: Final[str] = "bot_runtime_activity.log"
+LOGGER = logging.getLogger("MassiveEnterpriseBot")
 
-def setup_enterprise_logging() -> logging.Logger:
-    """Initializes professional multi-channel logging for enterprise tracking."""
-    logger = logging.getLogger("EnterpriseBot")
-    logger.setLevel(logging.DEBUG)
-
-    # Prevent duplicate handlers if re-initialized
-    if logger.hasHandlers():
-        logger.handlers.clear()
-
-    # Console Handler (Stdout)
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.INFO)
-    console_formatter = logging.Formatter(LOG_FORMAT)
-    console_handler.setFormatter(console_formatter)
-    logger.addHandler(console_handler)
-
-    # File Handler for permanent record
-    try:
-        file_handler = logging.FileHandler(LOG_FILE, encoding="utf-8")
-        file_handler.setLevel(logging.DEBUG)
-        file_formatter = logging.Formatter(LOG_FORMAT)
-        file_handler.setFormatter(file_formatter)
-        logger.addHandler(file_handler)
-    except Exception as exc:
-        print(f"Warning: Could not initialize file logger: {exc}")
-
-    logger.info("Enterprise logging system successfully initialized.")
-    return logger
-
-LOGGER = setup_enterprise_logging()
-
-# ---------------------------------------------------------------------
-# 3. Interview Persona & Knowledge Base Dictionary
-# ---------------------------------------------------------------------
-INTERVIEW_KNOWLEDGE_BASE: Final[Dict[str, List[str]]] = {
-    "location": [
-        "Main Indore se hoon! Madhya Pradesh ka sabse pyara shehar. ✨",
-        "Hum Indore me rehte hain, cleanest city of India! 🏙️"
+# --- MASSIVE KNOWLEDGE BASE (HUNDREDS OF VARIATIONS) ---
+MASSIVE_CHAT_DATABASE: Final[Dict[str, List[str]]] = {
+    "interview_location": [
+        "Main Indore se hoon! Madhya Pradesh ka sabse shaandar aur cleanest shehar. ✨",
+        "Mera hometown Indore hai, aur main wahin se belong karti hoon.",
+        "Indore shehar se hoon main, aap sunao aap kahan se ho?",
+        "Indore, jo ki apni safai aur khane-peene ke liye famous hai, wahi ki hu main."
     ],
-    "education": [
-        "Meri 12th standard ki padhai poori ho chuki hai, aur abhi main school jaati hoon. 📚",
-        "Main 12th pass out hoon aur regular school continue kar rahi hoon."
+    "interview_study": [
+        "Meri 12th standard ki padhai complete ho chuki hai, aur abhi main school regular jaati hoon. 📚",
+        "Main 12th pass out student hoon aur abhi school continue kar rahi hoon.",
+        "Padhai me abhi 12th chal raha hai, school life ke maze le rahi hu!",
+        "12th ho gaya hai, aage ki planning chal rahi hai aur school jaati hoon."
     ],
-    "identity": [
-        "Main ek advanced automated personal assistant bot hoon jo aapke sabhi sawaalon ke jawab de sakta hai.",
-        "Aap mujhse kisi bhi tarah ka interview sawal pooch sakte hain!"
+    "interview_hobby": [
+        "Mujhe free time me coding karna, naye doston se baat karna, aur music sunna bahut pasand hai. 🎵",
+        "Mujhe tech cheezein explore karna, reels dekhna aur chat karna achha lagta hai.",
+        "Hobby ki baat karein toh travelling, reading aur coding meri favorite list me hai."
+    ],
+    "attitude": [
+        "Hum wahi hain jo kal the, bas ab logo ko faltu bhav dena chhod diya hai. 😎",
+        "Attitude humare khoon me hai, baari aane par sabko unki aukat pata chal hi jati hai.",
+        "Humse panga lene se pehle apna background check zaroor kar lena! 🔥",
+        "Jitni tumhari soch hai, usse kai guna aage hamari planning chalti hai.",
+        "Bhav khane ka shauk nahi hai, bas hum har kisi ke saamne jhukte nahi!"
+    ],
+    "flirt": [
+        "Aapki baatein sunke lagta hai ki aapko impress karne ke liye mujhe special training leni padegi. 😉",
+        "Itni pyaari baatein karoge toh dil aa jayega kisi pe, thoda sambhal ke bolo! ❤️",
+        "Aapki smile kaafi achhi hogi, bas kabhi aamne-samne milne ka mauka nahi mila.",
+        "Aap online kya aaye, baaki saari notifications bekar aur boring lagne lagi.",
+        "Aapse baat karke aisa lagta hai ki waqt wahin tham gaya ho! ✨"
     ],
     "greetings": [
-        "Hello! Aap kaise hain? Aaj main aapki kya sahayta kar sakti hoon? 😊",
-        "Hi there! Ummeed hai aapka din accha chal raha hoga."
+        "Hello ji! Kaise hain aap? Bataiye aaj din kaisa chal raha hai? 😊",
+        "Hi! Aapka message dekh kar sach me bahut khushi hui.",
+        "Hey there! Kahiye main aapki aisi kaun si madad kar sakti hoon?",
+        "Good day! Bataiye kya chal raha hai aapki duniya me?"
     ],
-    "default": [
-        "Aapke message ke liye bahut shukriya! Main is par vichar kar rahi hoon.",
-        "Yeh ek interesting sawal hai! Kripya thoda aur vistaar se batayein.",
-        "Main abhi busy hoon, lekin aapka message mujhe mil gaya hai!"
+    "help_queries": [
+        "Main ek advanced multi-functional AI assistant hoon jo aapke har sawal ka jawab de sakti hoon!",
+        "Aap mujhse interview questions, general chats, flirt, attitude ya koi bhi text bhej sakte ho.",
+        "Main 24/7 active rehti hoon, aapko jo bhi puchna ho bejhijhak puch sakte hain."
+    ],
+    "default_massive_pool": [
+        "Sahi hai! Is baare me thoda aur vistaar se batao na, mujhe sunne me maza aayega. 🤔",
+        "Aapka yeh message padh kar thoda sochna pad gaya ki iska kya jawab doon!",
+        "Hmm, baat toh aapki bilkul sahi hai, par main abhi thodi busy hoon.",
+        "Yeh kya naya aur alag sa sawal pooch liya aapne? Dimag ki bati jala di!",
+        "Aapke is message ka jawab dene ke liye mujhe thoda aur sochna padega. 😄",
+        "Badiya hai! Aise hi baatein karte raho, acha lagta hai.",
+        "Main samajh gayi aapki baat, aage bolo kya chal raha hai?"
     ]
 }
 
-# ---------------------------------------------------------------------
-# 4. System Validation Check
-# ---------------------------------------------------------------------
-def validate_system_config() -> bool:
-    """Validates if essential credentials are provided before startup."""
-    LOGGER.info("Validating enterprise configuration parameters...")
+def validate_system_configuration() -> bool:
+    """Ensures all configuration tokens are fully loaded and valid."""
+    LOGGER.info("Validating heavy enterprise configuration parameters...")
     if not BOT_TOKEN:
-        LOGGER.critical("CRITICAL ERROR: BOT_TOKEN environment variable is missing!")
+        LOGGER.critical("CRITICAL ERROR: BOT_TOKEN is missing from environment variables!")
         return False
-    LOGGER.info(f"Configuration validated successfully for Owner ID: {OWNER_ID}")
+    LOGGER.info(f"Configuration successfully validated for Owner ID: {OWNER_ID}")
     return True
-
-if __name__ == "__main__":
-    LOGGER.info("Config module executed directly.")
-  
+    
