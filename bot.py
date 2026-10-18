@@ -1,146 +1,109 @@
-import os
-import logging
-import sqlite3
-from telegram import Update
-from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, ChatMemberHandler, CommandHandler, filters
-from flask import Flask
-import threading
+# =====================================================================
+# FILE 5 OF 5: bot.py
+# Purpose: Main Enterprise Bot Orchestrator and Polling Runner
+# Lines: ~300
+# =====================================================================
 
-# Logging setup
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+import sys
+from telegram.ext import (
+    ApplicationBuilder,
+    ChatMemberHandler,
+    CommandHandler,
+    MessageHandler,
+    filters
 )
+from config import BOT_TOKEN, LOGGER, validate_system_config, BOT_VERSION
+from server import WEB_SERVER
+from handlers import EnterpriseBotHandlers
 
-# --- DATABASE SETUP ---
-def init_db():
-    conn = sqlite3.connect('bot_database.db')
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS groups (
-            chat_id INTEGER PRIMARY KEY,
-            title TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
+class EnterpriseTelegramBotLauncher:
+    """Orchestrates the entire enterprise bot ecosystem, servers, and handlers."""
 
-def add_group(chat_id, title):
-    conn = sqlite3.connect('bot_database.db')
-    cursor = conn.cursor()
-    cursor.execute('INSERT OR IGNORE INTO groups (chat_id, title) VALUES (?, ?)', (chat_id, title))
-    conn.commit()
-    conn.close()
+    def __init__(self) -> None:
+        self.application = None
 
-def remove_group(chat_id):
-    conn = sqlite3.connect('bot_database.db')
-    cursor = conn.cursor()
-    cursor.execute('DELETE FROM groups WHERE chat_id = ?', (chat_id,))
-    conn.commit()
-    conn.close()
+    def build_application(self) -> None:
+        """Builds and configures the Telegram Bot application instance."""
+        LOGGER.info(f"Building Telegram application v{BOT_VERSION}...")
+        
+        if not validate_system_config():
+            LOGGER.critical("System configuration validation failed. Aborting startup.")
+            sys.exit(1)
 
-def get_all_groups():
-    conn = sqlite3.connect('bot_database.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT chat_id FROM groups')
-    rows = cursor.fetchall()
-    conn.close()
-    return [row[0] for row in rows]
-
-init_db()
-
-# --- FLASK SERVER FOR RENDER ---
-app = Flask('')
-
-@app.route('/')
-def home():
-    return "Bot is running 24/7!"
-
-def run_web():
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
-
-# --- TELEGRAM BOT HANDLERS ---
-
-# 1. Track groups when bot is added or removed
-async def track_chats(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    result = update.my_chat_member
-    if result:
-        chat = result.chat
-        if chat.type in ["group", "supergroup"]:
-            if result.new_chat_member.status in ["member", "administrator"]:
-                add_group(chat.id, chat.title)
-                print(f"Group added: {chat.title}")
-            elif result.new_chat_member.status in ["left", "kicked"]:
-                remove_group(chat.id)
-                print(f"Group removed: {chat.title}")
-
-# 2. Smart Auto-Save: Group me koi bhi message karega toh bot automatic save kar lega
-async def auto_save_group_on_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat = update.effective_chat
-    if chat and chat.type in ["group", "supergroup"]:
-        add_group(chat.id, chat.title)
-
-# 3. Auto-reply for private chats
-async def auto_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.chat.type == "private":
-        await update.message.reply_text("Hello! Main ek auto-reply bot hoon.")
-
-# 4. Promotion Command (/promotion) - Replied post ko sabhi groups me bhejega
-async def promotion_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Check karein ki user ne kisi message ko reply kiya hai ya nahi
-    if not update.message.reply_to_message:
-        await update.message.reply_text(
-            "⚠️ Kripya apni post ya link ko **Reply** karke `/promotion` command bhejein!"
-        )
-        return
-
-    group_ids = get_all_groups()
-    
-    if not group_ids:
-        await update.message.reply_text("⚠️ Abhi tak koi group database me save nahi hai!")
-        return
-
-    success_count = 0
-    fail_count = 0
-
-    target_message_id = update.message.reply_to_message.message_id
-    from_chat_id = update.effective_chat.id
-
-    for chat_id in group_ids:
         try:
-            await context.bot.copy_message(
-                chat_id=chat_id,
-                from_chat_id=from_chat_id,
-                message_id=target_message_id
+            # Build application with token
+            self.application = ApplicationBuilder().token(BOT_TOKEN).build()
+            self._register_handlers()
+            LOGGER.info("Telegram application built and configured successfully.")
+        except Exception as exc:
+            LOGGER.critical(f"Failed to build Telegram application: {exc}")
+            sys.exit(1)
+
+    def _register_handlers(self) -> None:
+        """Registers all event handlers and command routers into the application."""
+        LOGGER.info("Registering enterprise event handlers...")
+
+        # 1. Chat Member Handler (Tracking group additions/removals)
+        self.application.add_handler(
+            ChatMemberHandler(
+                EnterpriseBotHandlers.track_chats_handler,
+                ChatMemberHandler.MY_CHAT_MEMBER
             )
-            success_count += 1
-        except Exception as e:
-            print(f"Error sending to {chat_id}: {e}")
-            fail_count += 1
+        )
 
-    await update.message.reply_text(
-        f"📢 **Promotion Completed!**\n\n✅ Success (Sent): {success_count} groups\n❌ Failed: {fail_count} groups"
-    )
+        # 2. Secure Owner Command Handler (/promotion)
+        self.application.add_handler(
+            CommandHandler("promotion", EnterpriseBotHandlers.promotion_command_handler)
+        )
 
-if __name__ == '__main__':
-    t = threading.Thread(target=run_web)
-    t.start()
+        # 3. Group Message Smart Auto-Save Handler
+        self.application.add_handler(
+            MessageHandler(
+                filters.ChatType.GROUPS & (~filters.COMMAND),
+                EnterpriseBotHandlers.auto_save_on_group_message
+            )
+        )
 
-    TOKEN = os.environ.get("BOT_TOKEN")
+        # 4. Private Chat Interview & Auto-Reply Handler
+        self.application.add_handler(
+            MessageHandler(
+                filters.TEXT & (~filters.COMMAND) & filters.ChatType.PRIVATE,
+                EnterpriseBotHandlers.interview_auto_reply_handler
+            )
+        )
+
+        LOGGER.info("All enterprise handlers registered successfully.")
+
+    def run(self) -> None:
+        """Starts the uptime web server and runs the Telegram bot polling engine."""
+        LOGGER.info("Initializing enterprise bot startup sequence...")
+
+        # Step 1: Start 24/7 Uptime Flask Web Server in Background Thread
+        WEB_SERVER.start_background_thread()
+
+        # Step 2: Build Bot Application
+        self.build_application()
+
+        # Step 3: Start Long Polling for Telegram Updates
+        LOGGER.info("Starting Telegram bot long-polling engine... Bot is now live!")
+        try:
+            self.application.run_polling(allowed_updates=Update.ALL_TYPES)
+        except Exception as exc:
+            LOGGER.critical(f"Polling crashed due to unexpected error: {exc}")
+            sys.exit(1)
+
+# ---------------------------------------------------------------------
+# Application Entry Point
+# ---------------------------------------------------------------------
+if __name__ == "__main__":
+    print(f"""
+    ========================================================
+       STARTING TELEGRAM ENTERPRISE BOT (v{BOT_VERSION})
+       - Architecture: 5 Modular Python Files
+       - Features: Secure Promotion, Interview AI, 24/7 Uptime
+    ========================================================
+    """)
     
-    application = ApplicationBuilder().token(TOKEN).build()
-
-    # Handlers
-    application.add_handler(ChatMemberHandler(track_chats, ChatMemberHandler.MY_CHAT_MEMBER))
-    application.add_handler(CommandHandler("promotion", promotion_command))
-    
-    # Auto-save groups on message
-    application.add_handler(MessageHandler(filters.ChatType.GROUPS & (~filters.COMMAND), auto_save_group_on_message))
-    
-    # Private chat auto-reply
-    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND) & filters.ChatType.PRIVATE, auto_reply))
-
-    print("Bot fully active with /promotion command...")
-    application.run_polling()
+    launcher = EnterpriseTelegramBotLauncher()
+    launcher.run()
     
