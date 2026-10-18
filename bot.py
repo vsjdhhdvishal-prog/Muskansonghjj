@@ -1,5 +1,5 @@
 # =====================================================================
-# FILE: bot.py (Ultra Advance Promotion & Group Engine)
+# FILE: bot.py
 # =====================================================================
 
 import sys
@@ -28,10 +28,8 @@ class EnterpriseBotEngine:
             member_status = result.new_chat_member.status
             if member_status in ["member", "administrator"]:
                 DB_INSTANCE.add_group(chat.id, chat.title)
-                LOGGER.info(f"Group registered -> Title: {chat.title} [ID: {chat.id}]")
             elif member_status in ["left", "kicked"]:
                 DB_INSTANCE.remove_group(chat.id)
-                LOGGER.warning(f"Group removed -> Title: {chat.title} [ID: {chat.id}]")
 
     @staticmethod
     async def auto_save_active_groups(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -75,25 +73,23 @@ class EnterpriseBotEngine:
     async def execute_secure_promotion_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         user_id = update.effective_user.id
         if user_id != OWNER_ID:
-            await update.message.reply_text("⛔ Access Denied: Is command ki permission sirf bot owner ke paas hai!")
+            await update.message.reply_text("⛔ Access Denied: Is command ki permission sirf owner ke paas hai!")
             return
 
         if not update.message.reply_to_message:
-            await update.message.reply_text("⚠️ **Ultra Promotion Guide:**\n\nKripya apni kisi bhi post, link, photo ya video ko **Reply** karke `/promotion` command bhejein!")
+            await update.message.reply_text("⚠️ Kripya apni post/link ko **Reply** karke `/promotion` command bhejein!")
             return
 
         group_id_list = DB_INSTANCE.fetch_all_groups()
         if not group_id_list:
-            await update.message.reply_text("⚠️ Database me abhi koi bhi group registered nahi hai! Pehle bot ko groups me add karein.")
+            await update.message.reply_text("⚠️ Database me abhi koi group registered nahi hai!")
             return
 
-        success_tally = 0
-        failure_tally = 0
-
+        success_tally, failure_tally = 0, 0
         target_msg_id = update.message.reply_to_message.message_id
         source_chat_id = update.effective_chat.id
 
-        status_notice = await update.message.reply_text(f"🚀 Ultra-Broadcasting promotion across {len(group_id_list)} saved groups...")
+        status_notice = await update.message.reply_text(f"🚀 Broadcasting promotion across {len(group_id_list)} groups...")
 
         for chat_id in group_id_list:
             try:
@@ -104,16 +100,12 @@ class EnterpriseBotEngine:
                 )
                 success_tally += 1
             except Exception as exc:
-                LOGGER.error(f"Failed to broadcast to group {chat_id}: {exc}")
+                LOGGER.error(f"Failed to copy message to group {chat_id}: {exc}")
                 failure_tally += 1
 
-        summary_report = (
-            f"📢 **Ultra Promotion Report**\n\n"
-            f"✅ Successfully Delivered: {success_tally} groups\n"
-            f"❌ Failed (Bot removed/kicked): {failure_tally} groups\n"
-            f"📊 Total Target Groups: {len(group_id_list)}"
+        await status_notice.edit_text(
+            f"📢 **Promotion Report**\n\n✅ Success: {success_tally}\n❌ Failed: {failure_tally}\n📊 Total: {len(group_id_list)}"
         )
-        await status_notice.edit_text(summary_report)
 
 class MassiveBotLauncher:
     def launch_bot_system(self) -> None:
@@ -130,10 +122,10 @@ class MassiveBotLauncher:
             app.add_handler(MessageHandler(filters.ChatType.GROUPS & (~filters.COMMAND), EnterpriseBotEngine.auto_save_active_groups))
             app.add_handler(MessageHandler(filters.ChatType.GROUPS & (filters.TEXT | filters.COMMAND), EnterpriseBotEngine.handle_group_tag_mentions))
 
-            LOGGER.info("Ultra Advance Bot Engine started successfully with robust broadcasting...")
+            LOGGER.info("Bot is live with Group Tag Mentions & Secure Promotion...")
             app.run_polling(allowed_updates=Update.ALL_TYPES)
         except Exception as exc:
-            LOGGER.critical(f"Critical launcher error: {exc}")
+            LOGGER.critical(f"Critical error: {exc}")
             sys.exit(1)
 
 if __name__ == "__main__":
