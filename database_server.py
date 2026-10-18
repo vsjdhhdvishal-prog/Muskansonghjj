@@ -1,5 +1,5 @@
 # =====================================================================
-# FILE: database_server.py
+# FILE: database_server.py (With Default Group Auto-Fix)
 # =====================================================================
 
 import sqlite3
@@ -33,8 +33,16 @@ class MassiveDatabaseManager:
                             registered_at DATETIME DEFAULT CURRENT_TIMESTAMP
                         )
                     ''')
+                    # Safety check: Agar database bilkul khali hai toh ek default placeholder daal do taaki error na aaye
+                    cursor.execute('SELECT COUNT(*) as cnt FROM enterprise_groups')
+                    row = cursor.fetchone()
+                    if row and row['cnt'] == 0:
+                        cursor.execute(
+                            'INSERT OR IGNORE INTO enterprise_groups (chat_id, title) VALUES (?, ?)',
+                            (-100123456789, "Default Enterprise Group")
+                        )
                     conn.commit()
-                    LOGGER.info("Database initialized successfully.")
+                    LOGGER.info("Database initialized successfully with safety check.")
             except Exception as exc:
                 LOGGER.critical(f"Database init error: {exc}")
 
@@ -66,7 +74,8 @@ class MassiveDatabaseManager:
             try:
                 with self._get_connection() as conn:
                     cursor = conn.cursor()
-                    cursor.execute('SELECT chat_id FROM enterprise_groups')
+                    # Sirf valid real group IDs return karenge (default placeholder ko hata kar)
+                    cursor.execute('SELECT chat_id FROM enterprise_groups WHERE chat_id != -100123456789')
                     return [row['chat_id'] for row in cursor.fetchall()]
             except Exception as exc:
                 LOGGER.error(f"Error fetching groups: {exc}")
