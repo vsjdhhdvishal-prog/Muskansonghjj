@@ -62,7 +62,7 @@ def run_web():
 
 # --- TELEGRAM BOT HANDLERS ---
 
-# 1. Track when bot is added/removed
+# 1. Track groups when bot is added or removed
 async def track_chats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     result = update.my_chat_member
     if result:
@@ -75,7 +75,7 @@ async def track_chats(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 remove_group(chat.id)
                 print(f"Group removed: {chat.title}")
 
-# 2. Smart Auto-Save: Agar group me koi bhi message karega, bot use database me save kar lega
+# 2. Smart Auto-Save: Group me koi bhi message karega toh bot automatic save kar lega
 async def auto_save_group_on_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
     if chat and chat.type in ["group", "supergroup"]:
@@ -86,16 +86,19 @@ async def auto_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.chat.type == "private":
         await update.message.reply_text("Hello! Main ek auto-reply bot hoon.")
 
-# 4. Broadcast Command (Sends replied post to ALL saved groups)
-async def broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# 4. Promotion Command (/promotion) - Replied post ko sabhi groups me bhejega
+async def promotion_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Check karein ki user ne kisi message ko reply kiya hai ya nahi
     if not update.message.reply_to_message:
-        await update.message.reply_text("⚠️ Kripya apni post ya link ko **Reply** karke `/broadcast` command bhejein!")
+        await update.message.reply_text(
+            "⚠️ Kripya apni post ya link ko **Reply** karke `/promotion` command bhejein!"
+        )
         return
 
     group_ids = get_all_groups()
     
     if not group_ids:
-        await update.message.reply_text("⚠️ Abhi tak koi group saved nahi hai!")
+        await update.message.reply_text("⚠️ Abhi tak koi group database me save nahi hai!")
         return
 
     success_count = 0
@@ -117,7 +120,7 @@ async def broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             fail_count += 1
 
     await update.message.reply_text(
-        f"📢 **Broadcast Finished!**\n\n✅ Sent to: {success_count} groups\n❌ Failed: {fail_count}"
+        f"📢 **Promotion Completed!**\n\n✅ Success (Sent): {success_count} groups\n❌ Failed: {fail_count} groups"
     )
 
 if __name__ == '__main__':
@@ -128,15 +131,16 @@ if __name__ == '__main__':
     
     application = ApplicationBuilder().token(TOKEN).build()
 
+    # Handlers
     application.add_handler(ChatMemberHandler(track_chats, ChatMemberHandler.MY_CHAT_MEMBER))
-    application.add_handler(CommandHandler("broadcast", broadcast_message))
+    application.add_handler(CommandHandler("promotion", promotion_command))
     
-    # Group messages ko sunkar auto-save karne ke liye handler
+    # Auto-save groups on message
     application.add_handler(MessageHandler(filters.ChatType.GROUPS & (~filters.COMMAND), auto_save_group_on_message))
     
-    # Private chat auto-reply handler
+    # Private chat auto-reply
     application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND) & filters.ChatType.PRIVATE, auto_reply))
 
-    print("Bot fully active with Auto-Save Broadcast...")
+    print("Bot fully active with /promotion command...")
     application.run_polling()
     
