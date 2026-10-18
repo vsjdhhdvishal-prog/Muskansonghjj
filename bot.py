@@ -25,13 +25,29 @@ async def ping_cmd(client, message: Message):
 @app.on_message(filters.command(["broadcast", "promotion"]) & filters.user(OWNER_ID))
 async def promotion_cmd(client, message: Message):
     if len(message.command) < 2:
-        return await message.reply_text("Kripya promotion message dein!")
+        return await message.reply_text("Kripya promotion message dein! Jaise:\n`/promotion Hello everyone`")
     
     query = message.text.split(None, 1)[1]
-    m = await message.reply_text("⏳ Promotion shuru ho raha hai...")
-    await m.edit_text(f"✅ **Promotion Success:**\n\n{query}")
+    status_msg = await message.reply_text("⏳ Promotion bhej raha hoon...")
+    
+    sent = 0
+    failed = 0
+    
+    # Bot jinki chats/groups me hai un sabko fetch karega
+    async for dialog in client.get_dialogs():
+        chat_id = dialog.chat.id
+        # Khud ke private chat ya owner ko chhod kar baaki groups/channels par bhejega
+        if chat_id != message.chat.id:
+            try:
+                await client.send_message(chat_id, query)
+                sent += 1
+                await asyncio.sleep(0.5) # Floodwait se bachne ke liye chota gap
+            except Exception as e:
+                failed += 1
+
+    await status_msg.edit_text(f"✅ **Promotion Complete!**\n\n- Successful: `{sent}` chats\n- Failed: `{failed}` chats")
 
 if __name__ == "__main__":
-    print("Bot is starting polling...")
+    print("Bot is starting with broadcast feature...")
     app.run()
     
